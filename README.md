@@ -25,9 +25,9 @@ official website:https://pdos.csail.mit.edu/6.828/2020/
 
 Build and run xv6:
 
-````
+```linux
 $ make qemu
-````
+```
 
 退出
 
@@ -37,7 +37,7 @@ Ctrl+a+x
 
 ## sleep
 
-````
+```c
 #include "kernel/types.h"
 #include "user/user.h"
 
@@ -51,11 +51,11 @@ int main(int argc,char* argv[]){
         exit(0);
     }
 }
-````
+```
 
 ## pingpong
 
-````
+```c
 #include "kernel/types.h"
 #include "user/user.h"
 
@@ -87,11 +87,11 @@ int main(int argc,char* argv[]){
         exit(0);
     }
 }
-````
+```
 
 ## primes
 
-````
+```c
 //primes.c
 #include "kernel/types.h"
 #include "user/user.h"
@@ -156,11 +156,11 @@ int main(){
     }
     exit(0);
 }
-````
+```
 
 ## find
 
-````
+```c
 //find.c
 
 #include "kernel/types.h"
@@ -253,11 +253,11 @@ int main(int argc,char* argv[]){
     find(argv[1],argv[2]);//find(path,des);
     exit(0);
 }
-````
+```
 
 ## xargs
 
-````
+```c
 //xargs.c
 //try to use *fork* and *exec*
 
@@ -321,6 +321,6 @@ int main(int argc,char* argv[]){
     }
     exit(0);
 }
-````
+```
 
 # Lab System calls
