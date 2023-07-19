@@ -106,6 +106,87 @@ in ``kernel/syscall.h``
 
 完成上述操作后，运行``trace 32 grep hello README``仍然无法成功，因为在内核中的系统调用还没有实现。
 
+第三个hint很重要，
+
+``Add a sys_trace() function in kernel/sysproc.c that implements the new system call by remembering its argument in a new variable in the proc structure (see kernel/proc.h). ``
+
+解释：
+在``kernel/sysproc.c``中添加一个``sys_trace()``函数，这个函数来实现这个新的系统调用。而这个新的系统调用，是通过在proc结构体中的新变量中来记住它的参数。
+
+也就是说，要做两件事，一个是在``kernel/sysproc.c``中添加一个``sys_trace()``函数;一个是要在proc结构体中添加新的变量。
+
+接下来看第三个hint的第二句话，
+
+``The functions to retrieve system call arguments from user space are in kernel/syscall.c, and you can see examples of their use in kernel/sysproc.c.``
+
+在``kernel/syscall.c``中有很多 从用户空间 检索/获取(retrieve)系统调用参数 的函数，具体例子可以参考``kernel/sysproc.c``
+
+通过阅读``kernel/syscall.c``可以发现有很多函数
+
+```C
+int fetchaddr(uint64 addr,uint64 *ip);
+int fetchstr(uint64 addr,char* buf,int max);
+static uint64 argraw(int n);
+void argint(int n,int* ip);
+void argaddr(int n,uint64 *ip);
+int argstr(int n,char* buf,int max);
+```
+
+阅读这些函数的注释，结合我们需要的命令行`trace 32 grep hello README`可以看见，我们主要是要获取`32`这个参数，所以我着重阅读了`argint()`函数。而第三个hint第二句话也说明了在`kernel/sysproc.c`中有些许使用`argint()`的例子。
+
+大概的感性认识就是，`argint(int n,int* ip)`将系统调用参数中第n个32bit数存储到ip中。
+
+那么我根据提示，先在`kernel/sysproc.c`中添加`sys_trace()`函数：
+
+```C
+uint64
+sys_uptime(void)
+{
+    ...
+}
+
+//add a sys_trace()
+uint64
+sys_trace(void)
+{
+    printf("sys_trace: test");//目前还不知道填什么
+}
+```
+
+其实这里可以试着在xv6系统中运行一下`trace 32 grep hello README`可以发现这一行起作用了。
+
+跟着提示，再去`kernel/proc.h`中阅读一下proc结构体。到这里就有些许眉头了，在proc结构体中可以发现一个进程的一些属性，比如pid，该进程的父进程等等。这个Lab让我们实现`trace`，那么需要的就是`trace mask`了，用于确定具体哪一个系统调用需要追踪。比如`trace 32 grep hello README`中，`32`就是`1 << SYS_read`也就是1左移5位，表示追踪`read`系统调用。
+
+那么我们在proc结构体中添加`trace_mask`
+
+```C
+struct proc {
+    struct spinlock lock;
+    ......
+    int pid;
+    struct proc *parent;
+    ......
+    //trace mask
+    int trace_mask;
+};
+```
+
+接着到`kernel/syscall.c`中先做些简单工作。
+
+```C
+// Prototypes for the functions that handle system calls.
+extern unit64 sys_fork(void);
+......
+extern uint64 sys_trace(void);
+
+......
+static uint64 (*syscalls[])(void) = {
+[SYS_fork]    sys_fork,
+......
+[SYS_trace]   sys_trace,
+};
+```
+
 
 
 # Sysinfo
