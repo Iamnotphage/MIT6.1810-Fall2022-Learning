@@ -1,4 +1,5 @@
 # MIT6.S801/6.828 Learning
+![](https://img.shields.io/github/repo-size/Iamnotphage/MIT6.S801-6.828-Learning) ![](https://img.shields.io/badge/license-MIT-blue) ![](https://img.shields.io/github/stars/Iamnotphage/MIT6.S801-6.828-Learning?style=social)
 
 6.S081/Fall 2022
 
