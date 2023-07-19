@@ -1,4 +1,10 @@
 # Lab System calls
+先切到syscall分支:
+```Linux
+$ git fetch
+$ git checkout syscall
+$ make clean
+```
 - [Lab System calls](#lab-system-calls)
 - [System call tracing](#system-call-tracing)
 - [Sysinfo](#sysinfo)
@@ -187,6 +193,90 @@ static uint64 (*syscalls[])(void) = {
 };
 ```
 
+提示还说，可以从`kernel/sysproc.c`中阅读如何获取参数的例子。
 
+上文我提及了`argint()`，另外一个就是用`myproc()`函数来获取当前进程的相关属性。
+
+**在填写`sys_trace()`函数之前，我们先暂停，继续往下看hint**
+
+第四个hint照做就行，读到`fork()`后有一种恍然大悟的感觉，这里就是父子进程共享内存段的代码实现。
+
+我们把proc结构体中的新变量`trace_mask`复制给子进程。
+
+```C
+int 
+fork(void)
+{
+    int i,pid;
+    struct proc *np;
+    struct proc *p = myproc();
+    ......
+    // copy trace mask
+    np->trace_mask=p->trace_mask;
+    ......
+}
+```
+
+第五个hint就是真正实现`trace`了，在这里先捋一下整个`trace`的过程。
+
+首先`trace 32 grep hello README`中，
+
+用户态运行`trace 32`，在`user/trace.c`中的main函数可以看见调用了`trace()`函数。
+
+然后就从用户态进入到内核态,执行`sys_trace()`函数,这个函数通过某种方式把参数(mask)传给`syscall()`函数,然后`syscall()`函数输出结果,这个结果包括当前进程的pid,系统调用的名字及其返回值.
+
+这里所说的"通过某种方式"其实已经明了,使用`myproc()`对当前进程的proc结构体中的trace_mask赋值即可.
+
+in `kernel/sysproc.c`:
+
+```C
+uint64
+sys_trace(void)
+{
+    struct proc *p = myproc();
+
+    int mask;
+    argint(0, &mask);
+
+    p->trace_mask=mask;
+    return 0;
+}
+```
+
+in `kernel/syscall.c`:
+
+```C
+// syscall_names
+char* syscall_names[] = {
+    "fork",
+    "exit",
+    ......
+    "trace",
+}
+
+
+void
+syscall(void)
+{
+    int num;
+    struct proc *p = myproc();
+
+    num = p->trapframe->a7;
+    if(num > 0 && num < NELEM(syscalls) && syscalls[num] ) {
+        //这里num是系统调用的数 比如SYS_read是5,
+        //然后syscalls[nums]()返回的是系统调用的返回值,存到a0寄存器里面.
+        p->trapframe->a0 = syscalls[nums]();
+
+        // solution
+        if( (p->trace_mask >> num) & 1 ){
+            printf("%d: syscall %s -> %d\n",p->pid,syscall_names[num - 1],p->trapframe->a0);
+        }
+    }else{
+        ......
+    }
+}
+```
+
+经检验,通过测试.
 
 # Sysinfo
