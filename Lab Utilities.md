@@ -80,6 +80,8 @@ int main(int argc,char* argv[]){
 
 ## primes
 
+参考给的文档，主要思路是递归
+
 ```c
 //primes.c
 #include "kernel/types.h"
@@ -148,6 +150,8 @@ int main(){
 ```
 
 ## find
+
+一定要仔细阅读 ```ls.c``` 文件
 
 ```c
 //find.c
