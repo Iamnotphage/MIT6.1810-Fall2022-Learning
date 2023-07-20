@@ -345,4 +345,81 @@ sys_sysinfo(void)
 }
 ```
 
-第四第五个提示也很明确了
+第四第五个提示也很明确了，前往`kernel/kalloc.c`和`kernel/proc.c`添加两个函数，获取sysinfo结构体中的两个变量：`freemem`和`nproc`即可。
+
+in `kernel/kalloc.c`:
+
+这个文件中`kmem`是全局的结构体变量，内部有个锁lock，以及一个链表freelist;我们数完freelist之后，数量乘以每页的大小(4096)即可。(注意看kalloc()函数，分配以PGSIZE为单位)
+
+```CPP
+uint64
+collect_freemem(void)
+{
+    struct run *r;
+    uint64 cnt = 0;// number of freemem
+
+    acquire(&kmem.lock);
+    r = kmem.freelist;
+
+    while(r){
+        r = r->next;
+        cnt++;
+    }
+    release(&kmem.lock);
+
+    return PGSIZE * cnt;// bytes per page times cnt;
+}
+
+```
+
+in `kernel/proc.c`:
+
+数进程数很简单，注意是‘非UNUSED’进程。阅读这个文件可以知道有个进程池类似的概念（变量`proc`数组）就从这里数。
+
+```CPP
+uint64
+collect_nproc(void)
+{
+    struct proc* p;
+    uint64 cnt = 0;
+
+    for(p = proc; p < &proc[NPROC]; p++){
+        if(p->state != UNUSED){
+            cnt++;
+        }
+    }
+    return cnt;
+}
+```
+
+把这俩实现的函数在`kernel/sysproc.c`中声明，然后在`sys_sysinfo()`中调用即可。
+
+```CPP
+uint64 collect_freemem(void);
+uint64 collect_nproc(void);
+
+......
+
+uint64
+sys_sysinfo(void)
+{
+    struct sysinfo si;// sysinfo
+    uint64 addr; // user pointer to struct sysinfo
+    struct proc* p = myproc();
+
+    argaddr(0, &addr);// only one argument: struct sysinfo* ,so we use argaddr()
+
+    // implement
+    si.freemem = collect_freemem();
+    si.nproc = collect_nproc();
+
+    // copy from kernel to user space;
+    if(copyout(p->pagetable, addr, (char*)&si, sizeof(si)) < 0){
+        return -1;
+    }
+
+    return 0;
+}
+```
+
+运行`sysinfotest`这个实验就此结束了。
