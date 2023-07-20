@@ -280,3 +280,30 @@ syscall(void)
 经检验,通过测试.
 
 # Sysinfo
+
+原文要求：
+<div class="required">
+  In this assignment you will add a system call, <tt>sysinfo</tt>,
+  that collects information about the running system.  The system call
+  takes one argument: a pointer to a <tt>struct sysinfo</tt>
+  (see <tt>kernel/sysinfo.h</tt>). The kernel should fill out the
+  fields of this struct: the <tt>freemem</tt> field should be set
+  to the number of bytes of free memory, and the <tt>nproc</tt>
+  field should be set to the number of processes whose <tt>state</tt>
+  is not <tt>UNUSED</tt>.
+  We provide a test program <tt>sysinfotest</tt>; you pass this
+  assignment if it prints "sysinfotest: OK".
+</div>
+
+前两点提示与`trace`实验类似，在Makefile里面添加一行，在`user/user.h`，`user/usys.pl`，`kernel/syscall.h`以及`kernel/syscall.c`中添加类似的代码即可。
+
+注意在`user/user.h`中要添加一个
+
+```C
+struct sysinfo;
+int sysinfo(struct sysinfo*);
+```
+
+到这里编译没有问题。
+
+查看`sysinfo`结构体内部，有两个东西。一个是`freemem`一个是`nproc`(其状态不能是UNUSED)
