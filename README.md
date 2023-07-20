@@ -10,6 +10,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 - [Guidance](#guidance)
 - [Lab Utilities](#lab-utilities)
 - [Lab System calls](#lab-system-calls)
+- [Lab Page tables](#lab-page-tables)
 
 # Tools
 
@@ -22,3 +23,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 # Lab System calls
 
 [Click Here](/Lab%20System%20calls.md)
+
+# Lab Page tables
+
+[Click Here](/Lab%20Page%20tables.md)
