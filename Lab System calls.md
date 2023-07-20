@@ -307,3 +307,42 @@ int sysinfo(struct sysinfo*);
 到这里编译没有问题。
 
 查看`sysinfo`结构体内部，有两个东西。一个是`freemem`一个是`nproc`(其状态不能是UNUSED)
+
+接下来第三个提示就比较重要。
+
+目的是把结构体sysinfo从内核空间复制到用户空间。而需要我们借鉴`sys_fstat()`和`filestat()`两个函数的实例，来学会使用`copyout()`
+
+`copyout()`个人理解：
+
+```CPP
+int copyout(pagetable_t pagetable, uint64 dstva, char* src, uint64 len);
+```
+
+按照注释也能感性认识，从src中取len字节数据传给dstva(destination vitural address)的用户空间。
+
+那么结合`sys_fstat()`和`filestat()`，在`kernel/sysproc.c`把函数写完。
+
+```CPP
+uint64
+sys_sysinfo(void)
+{
+    struct sysinfo si;// sysinfo
+    uint64 addr; // user pointer to struct sysinfo
+    struct proc* p = myproc();
+
+    argaddr(0, &addr);// only one argument: struct sysinfo* ,so we use argaddr()
+
+    // waiting for implement
+    si.freemem = -1;
+    si.nproc = -1;
+
+    // copy from kernel to user space;
+    if(copyout(p->pagetable, addr, (char*)&si, sizeof(si)) < 0){
+        return -1;
+    }
+
+    return 0;
+}
+```
+
+第四第五个提示也很明确了
