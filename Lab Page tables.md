@@ -7,6 +7,7 @@ $ make clean
 ```
 - [Lab Page tables](#lab-page-tables)
 - [Speed up system calls](#speed-up-system-calls)
+- [Print a page table](#print-a-page-table)
 
 # Speed up system calls
 
@@ -155,3 +156,5 @@ uvmunmap(pagetable, TRAMPOLINE, 1, 0);
 运行pgtbltest，ugetpid_test:OK
 
 通过。
+
+# Print a page table
