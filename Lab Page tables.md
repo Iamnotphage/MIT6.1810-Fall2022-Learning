@@ -105,4 +105,53 @@ if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)
 
 解释一下mappages不成功为啥是这几行uvmunmap()函数，其实是因为分配不成功的话，前两次的也不作数了，最后页表pagetable也free了就行,然后直接返回0。
 
-同样的，照猫画虎：
+同样的，根据后两个提示照猫画虎：
+
+in `kernel/proc.c/allocproc()`
+
+```CPP
+......
+found:
+    p->pid = allocpid();
+    p->state = USED;
+
+    // Allocate a trapframe page.
+    if((p->trapframe = (struct trapframe *)kalloc()) == 0 ){
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+    }
+    // Solution: Allocate a usyscall
+    if((p->usyscall = (struct usyscall *)kalloc()) == 0 ){
+        freeproc(p);
+        release(&p->lock);
+        return 0;
+    }
+
+    // solution: initialize
+    p->usyscall->pid = p->pid;
+......
+```
+
+in `kernel/proc.c/freeproc()`
+
+```CPP
+// solution: free the page
+if(p->usyscall){
+    kfree((void*)p->usyscall);
+}
+p->usyscall = 0;
+```
+
+in `kernel/proc.c/proc_freepagetable()`
+
+```CPP
+// solution: uvmunmap
+uvmunmap(pagetable, USYSCALL, 1, 0);
+uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+......
+```
+
+运行pgtbltest，ugetpid_test:OK
+
+通过。
