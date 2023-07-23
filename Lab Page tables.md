@@ -161,3 +161,48 @@ uvmunmap(pagetable, TRAMPOLINE, 1, 0);
 
 这个实验挺简单的。不多赘述。
 
+先按照提示重点看一下`kernel/vm.c`中的函数`freewalk()`。
+
+其实就是递归遍历这个三级页表（dfs）
+
+那么根据这个操作，直接在最后几行添加这个`vmprint()`函数：
+
+```CPP
+// solution: vmprint()
+void
+recursive_vmprint(pagetable_t pagetable, uint64 depth)
+{
+    // only 3 level pagetable
+    if(depth > 2){
+        return;
+    }
+
+    // there are 2^9 = 512 PTEs in a page table
+    for(int i = 0; i < 512; i++){
+        pte_t pte = pagetable[i];
+        if(pte & PTE_V){
+            // this PTE points to a lower-level page table.
+            uint64 child = PTE2PA(pte);
+            if(depth == 0){
+                printf(" ..%d: pte %p pa %p\n", i , pte, child);
+                recursive_vmprint((pagetable_t)child, depth + 1);
+            }else if(depth == 1){
+                printf(" .. ..%d: pte %p pa %p\n", i , pte, child);
+                recursive_vmprint((pagetable_t)child, depth + 1);
+            }else{
+                printf(" .. .. ..%d: pte %p pa %p\n", i , pte, child);
+            }
+        }
+    }
+    return;
+}
+
+void 
+vmprint(pagetable_t pagetable)
+{
+    printf("page table %p\n", pagetable);
+    recursive_vmprint(pagetable, 0);
+    return;
+}
+```
+
