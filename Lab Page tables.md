@@ -206,3 +206,27 @@ vmprint(pagetable_t pagetable)
 }
 ```
 
+然后去`kernel/defs.h`中定义这个原型
+
+```CPP
+......
+// vm.c
+......
+void    vmprint(pagetable_t); // solution: define the prototype
+```
+
+还有`kernel/exec.c`中的`exec()`函数中 在return argc;之前加入给定代码。
+
+```CPP
+......
+// solution: insert the code
+if(p->pid == 1){
+    vmprint(p->pagetable);
+}
+
+return argc;
+
+......
+```
+
+最后运行一下`./grade-lab-pbtbl pte printout`显示OK即可。
