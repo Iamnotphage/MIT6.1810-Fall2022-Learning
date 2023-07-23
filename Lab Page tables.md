@@ -8,6 +8,7 @@ $ make clean
 - [Lab Page tables](#lab-page-tables)
 - [Speed up system calls](#speed-up-system-calls)
 - [Print a page table](#print-a-page-table)
+- [Detect which pages have been accessed](#detect-which-pages-have-been-accessed)
 
 # Speed up system calls
 
@@ -230,3 +231,5 @@ return argc;
 ```
 
 最后运行一下`./grade-lab-pbtbl pte printout`显示OK即可。
+
+# Detect which pages have been accessed
