@@ -11,15 +11,11 @@ $ make clean
 
 # Speed up system calls
 
-先看懂这三个图片：
-
-![fg3-1](/img/fg3-1.png)
-
-![fg3-2](/img/fg3-2.png)
+先看懂这个图片：
 
 ![fg3-4](/img/fg3-4.png)
 
-这里解释一下最后一个图
+这里解释一下
 
 **（Figure 3.4: A process’s user address space, with its initial stack.）**
 
@@ -158,3 +154,10 @@ uvmunmap(pagetable, TRAMPOLINE, 1, 0);
 通过。
 
 # Print a page table
+
+先看懂下面这个图片：
+
+![fg3-2](/img/fg3-2.png)
+
+这个实验挺简单的。不多赘述。
+
