@@ -1,14 +1,14 @@
 # Lab Utilities
 
 - [Lab Utilities](#lab-utilities)
-  - [Boot xv6](#boot-xv6)
-  - [sleep](#sleep)
-  - [pingpong](#pingpong)
-  - [primes](#primes)
-  - [find](#find)
-  - [xargs](#xargs)
+- [Boot xv6](#boot-xv6)
+- [sleep](#sleep)
+- [pingpong](#pingpong)
+- [primes](#primes)
+- [find](#find)
+- [xargs](#xargs)
 
-## Boot xv6
+# Boot xv6
 
 配置好之后
 
@@ -24,7 +24,7 @@ $ make qemu
 Ctrl+a+x
 ```
 
-## sleep
+# sleep
 
 ```c
 #include "kernel/types.h"
@@ -42,7 +42,7 @@ int main(int argc,char* argv[]){
 }
 ```
 
-## pingpong
+# pingpong
 
 ```c
 #include "kernel/types.h"
@@ -78,7 +78,7 @@ int main(int argc,char* argv[]){
 }
 ```
 
-## primes
+# primes
 
 参考给的文档，主要思路是递归
 
@@ -149,7 +149,7 @@ int main(){
 }
 ```
 
-## find
+# find
 
 一定要仔细阅读 ```ls.c``` 文件
 
@@ -248,7 +248,7 @@ int main(int argc,char* argv[]){
 }
 ```
 
-## xargs
+# xargs
 
 ```c
 //xargs.c
