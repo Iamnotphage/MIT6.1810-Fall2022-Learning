@@ -233,3 +233,5 @@ return argc;
 最后运行一下`./grade-lab-pbtbl pte printout`显示OK即可。
 
 # Detect which pages have been accessed
+
+test
