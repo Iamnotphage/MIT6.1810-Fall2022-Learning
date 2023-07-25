@@ -281,3 +281,15 @@ sys_pgaccess(void)
 
 这里`buf = 0x1111`用于测试代码copyout是否将kernel中的掩码传给user空间。
 
+(这里用buf暂存掩码结果，根据题目，这里的低位的次序表示第几页，比如二进制0000 1111表示第0、1、2、3页均被access过)
+
+后期将补上这段核心代码。
+
+再看后面的提示，需要我们去定义`PTE_A`，结合上图和前文代码:
+
+in `kernel/riscv.h`:
+
+```CPP
+#define PTE_A (1L << 6) // solution: define PTE_A
+```
+
