@@ -11,6 +11,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 - [Lab Utilities](#lab-utilities)
 - [Lab System calls](#lab-system-calls)
 - [Lab Page tables](#lab-page-tables)
+- [Lab Traps](#lab-traps)
 
 # Tools
 
@@ -27,3 +28,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 # Lab Page tables
 
 [Click Here](/Lab%20Page%20tables.md)
+
+# Lab Traps
+
+[Click Here](/Lab%20Traps.md)
