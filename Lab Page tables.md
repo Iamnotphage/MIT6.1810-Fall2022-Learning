@@ -234,4 +234,10 @@ return argc;
 
 # Detect which pages have been accessed
 
+同样还是需要这张图片：
+
+![fg3-2](/img/fg3-2.png)
+
+注意这里我们需要用到PTE_A这个标志位（在第六位）。
+
 test
