@@ -234,6 +234,18 @@ return argc;
 
 # Detect which pages have been accessed
 
+先看一下简要题干：
+<div class="required">
+Your job is to implement <tt>pgaccess()</tt>, a system call that reports which
+pages have been accessed. The system call takes three arguments. First, it takes
+the starting virtual address of the first user page to check. Second, it takes the
+number of pages to check. Finally, it takes a user address to a buffer to store
+the results into a bitmask (a datastructure that uses one bit per page and where
+the first page corresponds to the least significant bit). You will receive full
+credit for this part of the lab if the <tt>pgaccess</tt> test case passes when
+running <tt>pgtbltest</tt>.
+</div>
+
 同样还是需要这张图片：
 
 ![fg3-2](/img/fg3-2.png)
@@ -241,6 +253,14 @@ return argc;
 注意这里我们需要用到PTE_A这个标志位（在第六位）。
 
 结合前五个提示：
+
+我们主要做以下事情：
+
+* 声明变量
+* 用argaddr和argint获取参数
+* 设置边界条件
+* Detect which pages have been accessed(待实现)
+* 用copyout函数把结果传给用户空间
 
 in `kernel/sysyproc.c`
 
@@ -293,3 +313,59 @@ in `kernel/riscv.h`:
 #define PTE_A (1L << 6) // solution: define PTE_A
 ```
 
+这里需要我们仔细阅读`walk()`函数以便我们后期调用。
+
+那么到这里就需要实现核心代码了（检测哪一页被访问过）大体上需要我们这样：
+
+* 获取当前进程的页表
+* 用walk()函数获取PTE
+* 对PTE中的PTE_A位进行检测，是否被访问
+* 如果被访问，buf对应位置1
+* 最后PTE中的PTE_A位进行置0（复位）
+* 重复用walk()函数获取PTE，直到遍历结束
+
+```CPP
+#ifdef LAB_PGTBL
+int
+sys_pgaccess(void)
+{
+    // lab pgtbl: your code here.
+    // solution: implement
+    uint64 addr; // arg 0 the starting virtual address of the first user page to check
+    int n; // arg 1 the number of pages to check
+    int bitmask; // arg 2 a user address to a buffer to store the results into a bitmask
+    struct proc* p = myproc(); // current process
+    int buf = 0; // store a temporary buffer in the kernel;
+    // assume that all pages are not accessed: 0x0000 0000 (32 PTEs)
+
+    argaddr(0, &addr);
+    argint(1, &n);
+    argint(2,&bitmask);
+
+    // upper limit and lower limit for safety
+    if( n > 32 || n < 0){
+        return -1;
+    }
+
+    // result in buf
+    pte_t *pte = 0;
+
+    for(int i = 0; i < n; i++){
+        int va = addr + i * PGSIZE;
+        pte = walk(p->pagetable, va, 0);
+        if(*pte & PTE_A){
+            buf = buf | (1L << i); // i_th page is accessed
+        }
+        *pte = (*pte) & ~PTE_A; // set the access bit (PTE_A) to zero
+    }
+
+    if(copyout(p->pagetable, bitmask, (char*)&buf, sizeof(buf)) < 0){
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+```
+
+这里位运算的细节也不算太难。
