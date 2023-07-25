@@ -15,7 +15,15 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 
 # Tools
 
+For this class you'll need the RISC-V versions of a couple different tools:
+* QEMU 5.1+
+* GDB 8.3+
+* GCC
+* Binutils
+
 # Guidance
+
+个人推荐先稍微学一下git的基础命令
 
 # Lab Utilities
 
