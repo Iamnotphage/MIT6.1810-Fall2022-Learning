@@ -240,4 +240,44 @@ return argc;
 
 注意这里我们需要用到PTE_A这个标志位（在第六位）。
 
-test
+结合前五个提示：
+
+in `kernel/sysyproc.c`
+
+```CPP
+#ifdef LAB_PGTBL
+int
+sys_pgaccess(void)
+{
+    // lab pgtbl: your code here.
+    // solution: implement
+    uint64 addr; // arg 0 the starting virtual address of the first user page to check
+    int n; // arg 1 the number of pages to check
+    int bitmask; // arg 2 a user address to a buffer to store the results into a bitmask
+    struct proc* p = myproc(); // current process
+    int buf = 0; // store a temporary buffer in the kernel;
+    // assume that all pages are not accessed: 0x0000 0000 (32 PTEs)
+
+    argaddr(0, &addr);
+    argint(1, &n);
+    argint(2,&bitmask);
+
+    // upper limit and lower limit for safety
+    if( n > 32 || n < 0){
+        return -1;
+    }
+
+    // result in buf
+    buf = 0x1111; // just for test
+
+    if(copyout(p->pagetable, bitmask, (char*)&buf, sizeof(buf)) < 0){
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+```
+
+这里`buf = 0x1111`用于测试代码copyout是否将kernel中的掩码传给user空间。
+
