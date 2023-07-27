@@ -12,6 +12,8 @@ $ make clean
 
 # RISC-V assembly
 
+20230727：这个lab开始需要非常仔细阅读xv6文档了，有点难啃。
+
 # Backtrace
 
 # Alarm
