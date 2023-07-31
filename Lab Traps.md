@@ -28,6 +28,8 @@ $ make clean
 
 > a0到a7寄存器是用来作为函数的参数。如果一个函数有超过8个参数，我们就需要用内存了。从这里也可以看出，当可以使用寄存器的时候，我们不会使用内存，我们只在不得不使用内存的场景才使用它。
 
+in `answers-traps.txt`
+
 ```
 Q: Which registers contain arguments to functions?  For example, which register holds 13 in main's call to printf?
 A: a0-a7; a2;
