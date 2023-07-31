@@ -41,7 +41,20 @@ A: 0x64a;
 Q: What value is in the register ra just after the jalr to printf in main?
 A: 0x38; 因为auipc和jalr组合起来进入printf函数之后，ra应该执行0x34的下一条指令，所以是0x38;
 
-Q: 
+Q: Run the following code.
+
+	unsigned int i = 0x00646c72;
+	printf("H%x Wo%s", 57616, &i);
+      
+    What is the output? Here's an ASCII table that maps bytes to characters.
+    The output depends on that fact that the RISC-V is little-endian. If the RISC-V were instead big-endian what would you set i to in order to yield the same output? Would you need to change 57616 to a different value?
+A: Output: He110 World; 如果是大端存储，那么i=0x726c64即可得到相同输出;57616不用改。
+
+Q: In the following code, what is going to be printed after 'y='? (note: the answer is not a specific value.) Why does this happen?
+
+	printf("x=%d y=%d", 3);
+
+A: 查看0x64a处的printf汇编代码可以发现，有很多sd指令不断用a1到a7的寄存器获取函数参数；这里3已经被a1存储，那么这条语句的输出取决于寄存器a2中的值。
 ```
 
 # Backtrace
