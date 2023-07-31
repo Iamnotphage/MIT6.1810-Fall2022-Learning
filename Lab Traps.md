@@ -28,12 +28,20 @@ $ make clean
 
 > a0到a7寄存器是用来作为函数的参数。如果一个函数有超过8个参数，我们就需要用内存了。从这里也可以看出，当可以使用寄存器的时候，我们不会使用内存，我们只在不得不使用内存的场景才使用它。
 
-```TXT
+```
 Q: Which registers contain arguments to functions?  For example, which register holds 13 in main's call to printf?
 A: a0-a7; a2;
 
 Q: Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)
-A: 
+A: 无；无；因为g被inline到f中，而f进一步被inline到main函数中
+
+Q: At what address is the function printf located?
+A: 0x64a;
+
+Q: What value is in the register ra just after the jalr to printf in main?
+A: 0x38; 因为auipc和jalr组合起来进入printf函数之后，ra应该执行0x34的下一条指令，所以是0x38;
+
+Q: 
 ```
 
 # Backtrace
