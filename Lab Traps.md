@@ -48,7 +48,8 @@ Q: Run the following code.
       
     What is the output? Here's an ASCII table that maps bytes to characters.
     The output depends on that fact that the RISC-V is little-endian. If the RISC-V were instead big-endian what would you set i to in order to yield the same output? Would you need to change 57616 to a different value?
-A: Output: He110 World; 如果是大端存储，那么i=0x726c64即可得到相同输出;57616不用改。
+
+A: Output: He110 World; 如果是大端存储，那么i=0x726c64即可得到相同输出;57616不用改。(没搞懂为啥有这题)
 
 Q: In the following code, what is going to be printed after 'y='? (note: the answer is not a specific value.) Why does this happen?
 
