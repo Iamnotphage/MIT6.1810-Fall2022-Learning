@@ -136,15 +136,19 @@ backtrace(void)
 	printf("backtrace:\n");
 	uint64 fp = r_fp(); // get the fp;
 	while(fp > PGROUNDDOWN(fp)){
-		printf("%p\n",*(uint64*)(fp-8)); //ra
+		printf("%p\n",*(uint64*)(fp-8)); //ra 
+		// 这里是因为r_fp返回的是uint64类型，存储内容实际上是一个地址
+		// 所以减去8之后 （内容变成 ra 的地址）
+		// 先转换为uint64 * 类型之后，取他的值，就变成了ra的值了
+		// C语言指针基础内容，不多赘述。
 		fp = *(uint64 *)(fp-16); // Prev. fp
 	}
 	return;
 }
 ```
-其实这里有个小细节没有很清楚，主要原因是r_fp()函数我没太看懂，只知道返回值是fp，但是这个fp是整个栈空间的哪个位置？（顶还是底）
+其实这里有个小细节，fp指向内核栈的栈顶，根据栈的结构来看，**fp-8**其实就是**return address**，**fp-16**就是**Prev. fp**了。
 
-因为迷惑我的是汇编代码中，调用一个函数，建立一个栈之后，是这样的
+因为asm汇编代码中，调用一个函数，建立一个栈之后，是这样的
 
 ```x86asm
 sum_then_double:
@@ -157,5 +161,11 @@ sum_then_double:
 
 这里的prologue包含两句话, addi和sd
 
-可以看见创建栈是sp=sp-16的，可是这里给的提示也是减法（用fp来减）。根据lecture的说法，fp是指向当前栈顶的。
+可以看见创建栈是sp = sp-16的，可是这里给的提示也是减法（用fp来减）。根据lecture的说法，fp是指向当前栈顶的。
+
+所以fp做减法之后可以得到ra和Prev. fp
+
+最后根据题目进行测试，通过即可。
+
+别忘了把backtrace()加进 `panic` in `kernel/printf.c`
 # Alarm
