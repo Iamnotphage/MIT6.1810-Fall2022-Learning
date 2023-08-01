@@ -62,4 +62,100 @@ A: 查看0x64a处的printf汇编代码可以发现，有很多sd指令不断用a
 
 # Backtrace
 
+这里也是看一下lecture5就很容易懂。主要是Stack Frame相关的知识。
+
+![stack](/img/stackframe.png)
+
+这里需要看懂这个图片，一个简单的数据结构：栈。
+
+一个栈元素中有两项是必备的: **Return Address** 和 **To Prev. Frame**
+
+而xv6中地址都是64bit，也就是8B，所以ra占8B，fp也占8B。
+
+这样遍历整个栈就很容易了。
+
+看下Hints： 
+
+<ul>
+ <li>Add the prototype for your <tt>backtrace()</tt> to <tt>kernel/defs.h</tt> so that
+  you can invoke <tt>backtrace</tt> in <tt>sys_sleep</tt>.
+ </li><li>The GCC compiler stores the frame pointer of the currently
+ executing function in the
+ register <tt>s0</tt>. Add the following function
+ to <tt>kernel/riscv.h</tt>:
+ <pre>static inline uint64
+r_fp()
+{
+  uint64 x;
+  asm volatile("mv %0, s0" : "=r" (x) );
+  return x;
+}
+</pre>
+ and call this function in <tt>backtrace</tt> to read the current frame pointer.  <tt>r_fp()</tt> uses <a href="https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html">in-line
+ assembly</a> to read <tt>s0</tt>.
+ </li><li>These
+ <a href="https://pdos.csail.mit.edu/6.1810/2022/lec/l-riscv.txt">lecture
+ notes</a> have a picture of the layout of stack frames. Note that the
+ return address lives at a fixed offset (-8) from the frame pointer of a
+ stackframe, and that the saved frame pointer lives at fixed offset (-16) from the frame pointer.
+ </li><li>Your <tt>backtrace()</tt> will need a way to recognize that
+ it has seen the last stack frame, and should stop.
+ A useful fact is that the memory allocated for each kernel
+ stack consists of a single page-aligned page,
+ so that all the stack frames for a given stack
+ are on the same page.
+ You can use
+ <tt>PGROUNDDOWN(fp)</tt>
+ (see <tt>kernel/riscv.h</tt>) to identify the
+ page that a frame pointer refers to.
+ </li></ul>
+
+前两个hint需要我们操作的内容很熟悉了，添加prototype（原型）然后复制一下给定的代码、等等。
+
+这里重点是 **Implement backtrace()**
+
+第三个提示其实就是lecture中所说的栈的结构了，这里backtrace需要输出**return address**即可。
+
+所以我们需要在backtrace函数中实现：遍历栈、输出ra这样一件事情。
+
+提示4说明了边界条件的判定，去`kernel/riscv.h`中可以利用宏定义`PGROUNDDOWN(fp)`来判定边界。
+
+> A useful fact is that the memory allocated for each kernel stack consists of a single page-aligned page, so that all the stack frames for a given stack are on the same page.
+
+上面这句话很重要，它说明了内核栈是页对齐的（也就是4096 B对齐）所以我们才能够利用`PGROUNDDOWN(fp)`来判定边界。
+
+下面是我的具体实现：
+
+in `kernel/printf.c`:
+
+```CPP
+// solution: implement a backtrace() function
+void
+backtrace(void)
+{
+	printf("backtrace:\n");
+	uint64 fp = r_fp(); // get the fp;
+	while(fp > PGROUNDDOWN(fp)){
+		printf("%p\n",*(uint64*)(fp-8)); //ra
+		fp = *(uint64 *)(fp-16); // Prev. fp
+	}
+	return;
+}
+```
+其实这里有个小细节没有很清楚，主要原因是r_fp()函数我没太看懂，只知道返回值是fp，但是这个fp是整个栈空间的哪个位置？（顶还是底）
+
+因为迷惑我的是汇编代码中，调用一个函数，建立一个栈之后，是这样的
+
+```x86asm
+sum_then_double:
+	addi sp,sp,-16
+	sd ra,0(sp)
+	call sum_to
+	......
+
+```
+
+这里的prologue包含两句话, addi和sd
+
+可以看见创建栈是sp=sp-16的，可是这里给的提示也是减法（用fp来减）。根据lecture的说法，fp是指向当前栈顶的。
 # Alarm
