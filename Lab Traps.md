@@ -168,4 +168,5 @@ sum_then_double:
 最后根据题目进行测试，通过即可。
 
 别忘了把backtrace()加进 `panic` in `kernel/printf.c`
+
 # Alarm
