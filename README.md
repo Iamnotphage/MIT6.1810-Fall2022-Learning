@@ -23,7 +23,13 @@ For this class you'll need the RISC-V versions of a couple different tools:
 
 # Guidance
 
-个人推荐先稍微学一下git的基础命令
+个人推荐先稍微学一下
+
+* git的基础命令
+
+个人参考资料：
+
+* [MIT6.S081 Lecture中文文档](https://github.com/huihongxiao/MIT6.S081)
 
 # Lab Utilities
 

@@ -170,3 +170,10 @@ sum_then_double:
 别忘了把backtrace()加进 `panic` in `kernel/printf.c`
 
 # Alarm
+
+先在这里整理一下在Trap机制中非常重要的一些寄存器：
+
+* SATP（Supervisor Address Translation and Protection）寄存器，它包含了指向page table的物理内存地址
+* STVEC（Supervisor Trap Vector Base Address）寄存器，它指向了内核中处理trap的指令的起始地址
+* SEPC（Supervisor Exception Program Counter）寄存器，在trap的过程中保存程序计数器的值
+* SSRATCH（Supervisor Scratch Register）寄存器，这也是个非常重要的寄存器
