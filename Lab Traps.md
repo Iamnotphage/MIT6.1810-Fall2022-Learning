@@ -171,9 +171,20 @@ sum_then_double:
 
 # Alarm
 
+xv6book里面说，会使用Trap机制的情况大概分三类：
+
+* system calls 系统调用
+* exceptions   异常
+* interrupts   硬件中断
+
 先在这里整理一下在Trap机制中非常重要的一些寄存器：
 
 * SATP（Supervisor Address Translation and Protection）寄存器，它包含了指向page table的物理内存地址
 * STVEC（Supervisor Trap Vector Base Address）寄存器，它指向了内核中处理trap的指令的起始地址
 * SEPC（Supervisor Exception Program Counter）寄存器，在trap的过程中保存程序计数器的值
-* SSRATCH（Supervisor Scratch Register）寄存器，这也是个非常重要的寄存器
+* SSCRATCH（Supervisor Scratch Register）寄存器，在进入到user space之前，内核会将trapframe page的地址保存在这个寄存器中，也就是0x3fffffe000这个地址。更重要的是，RISC-V有一个指令允许交换任意两个寄存器的值。而SSCRATCH寄存器的作用就是保存另一个寄存器的值，并将自己的值加载给另一个寄存器。
+
+其次是Trap机制的过程：
+
+* ![Trap](/img/trap1.png)
+
