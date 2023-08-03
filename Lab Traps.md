@@ -188,3 +188,16 @@ xv6book里面说，会使用Trap机制的情况大概分三类：
 
 * ![Trap](/img/trap1.png)
 
+看一下alarm实验的要求：
+
+<div class="required"><p>
+In this exercise you'll add a feature to xv6 that periodically alerts
+a process as it uses CPU time. This might be useful for compute-bound
+processes that want to limit how much CPU time they chew up, or for
+processes that want to compute but also want to take some periodic
+action. More generally, you'll be implementing a primitive form of
+user-level interrupt/fault handlers; you could use something similar
+to handle page faults in the application, for example.  Your solution
+is correct if it passes alarmtest and 'usertests -q'
+</p></div>
+
