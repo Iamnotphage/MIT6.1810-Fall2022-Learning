@@ -199,4 +199,10 @@ user-level interrupt/fault handlers; you could use something similar
 to handle page faults in the application, for example.  Your solution
 is correct if it passes alarmtest and 'usertests -q'
 
+需要我们通过test0、test1等等
+
+这里注册系统调用sigalarm()和sigreturn()就不赘述了。
+
+与前几个lab中注册系统调用的操作一模一样。
+
 
