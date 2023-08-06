@@ -376,7 +376,7 @@ in `trampoline.S`:
 
 最后是jr t0，跳转到t0（也就是usertrap的地址）
 
-in `kernel/trap.c`: (答案已添加)
+in `kernel/trap.c`:
 
 ```CPP
 void
@@ -456,14 +456,6 @@ syscall(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
-    // solution: manipulate a process's alarm ticks
-    p->passed_ticks++;
-    if( p->interval > 0 && p->passed_ticks >= p->interval && p->ret_flag == 1){
-      memmove(p->trapframe_backup, p->trapframe, sizeof(struct trapframe));
-      p->passed_ticks = 0;
-      p->trapframe->epc = p->handler;
-      p->ret_flag = 0;
-    }
     yield();
   }
 
