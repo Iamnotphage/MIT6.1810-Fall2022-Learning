@@ -270,6 +270,8 @@ sigalarm是题目说的新添加的系统调用，它有两个参数，一个是
 
 这里调用它，这个c文件从头文件`user/user.h`里面找定义，它属于系统调用。跟其他的系统调用一样，通过`usys.pl`脚本文件(这里面定义了entry)产生的汇编代码（会加载头文件`syscall.h`里面的定义的系统调用的常数）来进入内核。
 
+in `usys.S`
+
 ```x86asm
 .global sigalarm
 sigalarm:
@@ -291,7 +293,7 @@ sigreturn:
 
 ecall执行后，其实这些也没咋变，PC变成了trampoline的地址(0x3ffffff004)，即将执行trampoline中的代码。
 
-根据lecture老教授的说法，ecall只做三件事：
+根据lecture中老教授的说法，ecall只做三件事：
 
 * 将mode标志位从user mode改为supervisor mode
 * SPEC寄存器保存ecall之前PC的值
@@ -299,7 +301,173 @@ ecall执行后，其实这些也没咋变，PC变成了trampoline的地址(0x3ff
   
 ecall实际上是CPU的指令，我们看不见具体内容。
 
+ecall之后，我们PC位于trampoline的起始位置，也就是uservec函数的起始位置。
+
+in `trampoline.S`:
+
+```x86asm
+......
+.globl uservec
+uservec:    
+	#
+        # trap.c sets stvec to point here, so
+        # traps from user space start here,
+        # in supervisor mode, but with a
+        # user page table.
+        #
+
+        # save user a0 in sscratch so
+        # a0 can be used to get at TRAPFRAME.
+        csrw sscratch, a0
+
+        # each process has a separate p->trapframe memory area,
+        # but it's mapped to the same virtual address
+        # (TRAPFRAME) in every process's user page table.
+        li a0, TRAPFRAME
+        
+        # save the user registers in TRAPFRAME
+        sd ra, 40(a0)
+        sd sp, 48(a0)
+        sd gp, 56(a0)
+        sd tp, 64(a0)
+        sd t0, 72(a0)
+......
+```
+
+这里第一条命令就是csrw交换a0寄存器和SSCRATCH寄存器，然后a0存的是TRAPFRAME
+
+接下来很多sd指令，就是store data，也就是保存32个用户寄存器。
+
+然后就是保存一些kernel的东西，kernel_sp、kernel_hartid、kernel_trap、kernel_satp
+
+in `trampoline.S`:
+
+```x86asm
+# save the user a0 in p->trapframe->a0
+        csrr t0, sscratch
+        sd t0, 112(a0)
+
+        # initialize kernel stack pointer, from p->trapframe->kernel_sp
+        ld sp, 8(a0)
+
+        # make tp hold the current hartid, from p->trapframe->kernel_hartid
+        ld tp, 32(a0)
+
+        # load the address of usertrap(), from p->trapframe->kernel_trap
+        ld t0, 16(a0)
 
 
+        # fetch the kernel page table address, from p->trapframe->kernel_satp.
+        ld t1, 0(a0)
 
+        # wait for any previous memory operations to complete, so that
+        # they use the user page table.
+        sfence.vma zero, zero
+
+        # install the kernel page table.
+        csrw satp, t1
+
+        # flush now-stale user entries from the TLB.
+        sfence.vma zero, zero
+
+        # jump to usertrap(), which does not return
+        jr t0
+```
+
+最后是jr t0，跳转到t0（也就是usertrap的地址）
+
+in `kernel/trap.c`: (答案已添加)
+
+```CPP
+void
+usertrap(void)
+{
+  int which_dev = 0;
+
+  if((r_sstatus() & SSTATUS_SPP) != 0)
+    panic("usertrap: not from user mode");
+
+  // send interrupts and exceptions to kerneltrap(),
+  // since we're now in the kernel.
+  w_stvec((uint64)kernelvec);
+
+  struct proc *p = myproc();
+  
+  // save user program counter.
+  p->trapframe->epc = r_sepc();
+  
+  if(r_scause() == 8){
+    // system call
+
+    if(killed(p))
+      exit(-1);
+
+    // sepc points to the ecall instruction,
+    // but we want to return to the next instruction.
+    p->trapframe->epc += 4;
+
+    // an interrupt will change sepc, scause, and sstatus,
+    // so enable only now that we're done with those registers.
+    intr_on();
+
+    syscall();
+......
+```
+
+执行到syscall() 然后就会通过defs.h头文件找到`kernel/syscall.c`里面的syscall函数来执行，可以简单看见使用了a7寄存器（也就是存了系统调用号这个常数的寄存器）
+
+```CPP
+void
+syscall(void)
+{
+  int num;
+  struct proc *p = myproc();
+
+  num = p->trapframe->a7;
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    // Use num to lookup the system call function for num, call it,
+    // and store its return value in p->trapframe->a0
+    p->trapframe->a0 = syscalls[num]();
+  } else {
+    printf("%d %s: unknown sys call %d\n",
+            p->pid, p->name, num);
+    p->trapframe->a0 = -1;
+  }
+}
+```
+
+通过上文的表单可以把sysproc.c中的具体的sys_sigalarm()函数调用，然后返回值存在trapframe的a0中。
+
+之后从syscall返回到`kernel/trap.c`继续执行；
+
+```CPP
+......
+	syscalll();
+  } else if((which_dev = devintr()) != 0){
+    // ok
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    setkilled(p);
+  }
+
+  if(killed(p))
+    exit(-1);
+
+  // give up the CPU if this is a timer interrupt.
+  if(which_dev == 2){
+    // solution: manipulate a process's alarm ticks
+    p->passed_ticks++;
+    if( p->interval > 0 && p->passed_ticks >= p->interval && p->ret_flag == 1){
+      memmove(p->trapframe_backup, p->trapframe, sizeof(struct trapframe));
+      p->passed_ticks = 0;
+      p->trapframe->epc = p->handler;
+      p->ret_flag = 0;
+    }
+    yield();
+  }
+
+  usertrapret();
+}
+```
 
