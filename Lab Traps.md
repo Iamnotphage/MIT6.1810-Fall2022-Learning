@@ -205,4 +205,4 @@ is correct if it passes alarmtest and 'usertests -q'
 
 与前几个lab中注册系统调用的操作一模一样。
 
-
+Finshed.

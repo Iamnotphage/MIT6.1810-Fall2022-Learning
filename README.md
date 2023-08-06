@@ -12,6 +12,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 - [Lab System calls](#lab-system-calls)
 - [Lab Page tables](#lab-page-tables)
 - [Lab Traps](#lab-traps)
+- [Lab Copy on-write](#lab-copy-on-write)
 
 # Tools
 
@@ -46,3 +47,7 @@ For this class you'll need the RISC-V versions of a couple different tools:
 # Lab Traps
 
 [Click Here](/Lab%20Traps.md)
+
+# Lab Copy on-write
+
+[Click Here](/Lab%20Copy%20on-write.md)
