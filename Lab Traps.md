@@ -205,4 +205,101 @@ is correct if it passes alarmtest and 'usertests -q'
 
 与前几个lab中注册系统调用的操作一模一样。
 
-Finshed.
+先试着通过test0吧，这里其实跟lecture6没啥区别的，就是细节非常多。
+
+从user到kernel的转变，涉及到很多细节。
+
+这里从`user/alarmtest.c`中运行的流程开始梳理一遍。一来是巩固自己学到的东西，二来是方便后期阅读。
+
+首先运行shell（它是用户态的）然后执行alarmtest
+
+这时候就进入了`user/alarmtest.c`来运行main()
+
+我们来看看main里面有什么：
+
+```CPP
+int
+main(int argc, char *argv[])
+{
+  test0();
+  test1();
+  test2();
+  test3();
+  exit(0);
+}
+```
+
+最先运行test0；那我们看看test0：
+
+```CPP
+void
+periodic()
+{
+  count = count + 1;
+  printf("alarm!\n");
+  sigreturn();
+}
+
+// tests whether the kernel calls
+// the alarm handler even a single time.
+void
+test0()
+{
+  int i;
+  printf("test0 start\n");
+  count = 0;
+  sigalarm(2, periodic);
+  for(i = 0; i < 1000*500000; i++){
+    if((i % 1000000) == 0)
+      write(2, ".", 1);
+    if(count > 0)
+      break;
+  }
+  sigalarm(0, 0);
+  if(count > 0){
+    printf("test0 passed\n");
+  } else {
+    printf("\ntest0 failed: the kernel never called the alarm handler\n");
+  }
+}
+```
+
+test0调用了`sigalarm(2, periodic)`
+
+sigalarm是题目说的新添加的系统调用，它有两个参数，一个是interval表示时钟中断间隔，第二个是中断后执行的函数。
+
+这里调用它，这个c文件从头文件`user/user.h`里面找定义，它属于系统调用。跟其他的系统调用一样，通过`usys.pl`脚本文件(这里面定义了entry)产生的汇编代码（会加载头文件`syscall.h`里面的定义的系统调用的常数）来进入内核。
+
+```x86asm
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
+ ecall
+ ret
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
+ ecall
+ ret
+```
+
+这里把常数SYS_sigalarm通过指令li加载到寄存器a7
+
+然后ecall指令就是正式进入内核了。
+
+在进入内核之前的寄存器组、页表都、特殊的寄存器PC等 都没有变化
+
+ecall执行后，其实这些也没咋变，PC变成了trampoline的地址(0x3ffffff004)，即将执行trampoline中的代码。
+
+根据lecture老教授的说法，ecall只做三件事：
+
+* 将mode标志位从user mode改为supervisor mode
+* SPEC寄存器保存ecall之前PC的值
+* PC寄存器会变成STVEC指向的地址（trampoline的指令）
+  
+ecall实际上是CPU的指令，我们看不见具体内容。
+
+
+
+
+
