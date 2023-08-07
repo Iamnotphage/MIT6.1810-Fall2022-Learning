@@ -211,6 +211,8 @@ is correct if it passes alarmtest and 'usertests -q'
 
 这里从`user/alarmtest.c`中运行的流程开始梳理一遍。一来是巩固自己学到的东西，二来是方便后期阅读。
 
+<a href=“#test”>熟悉该流程的点击这里跳过</a>
+
 首先运行shell（它是用户态的）然后执行alarmtest
 
 这时候就进入了`user/alarmtest.c`来运行main()
@@ -289,7 +291,7 @@ sigreturn:
 
 然后ecall指令就是正式进入内核了。
 
-在进入内核之前的寄存器组、页表都、特殊的寄存器PC等 都没有变化
+在进入内核之前的寄存器组、页表、特殊的寄存器PC等 都没有变化
 
 ecall执行后，其实这些也没咋变，PC变成了trampoline的地址(0x3ffffff004)，即将执行trampoline中的代码。
 
@@ -338,7 +340,7 @@ uservec:
 
 接下来很多sd指令，就是store data，也就是保存32个用户寄存器。
 
-然后就是保存一些kernel的东西，kernel_sp、kernel_hartid、kernel_trap、kernel_satp
+然后就是保存一些kernel的东西，kernel_sp、kernel_hartid、kernel_trap、kernel_satp(所以这里页表改变了,变成了kernel page table)
 
 in `trampoline.S`:
 
@@ -463,3 +465,62 @@ syscall(void)
 }
 ```
 
+之后执行到usertrapret()准备回到用户空间了
+
+```CPP
+void
+usertrapret(void)
+{
+  struct proc *p = myproc();
+
+  ......
+
+  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+  ((void (*)(uint64))trampoline_userret)(satp);
+}
+```
+
+中间缺省一下，中间部分主要是重新设置一下在trapframe中的satp、sp、hartid、trap的值。
+
+最后就是把userret函数的地址算出来，最后两行就调用userret;
+
+这个userret函数，也在`trampoline.S`文件中：
+
+```x86asm
+.globl userret
+userret:
+        # userret(pagetable)
+        # called by usertrapret() in trap.c to
+        # switch from kernel to user.
+        # a0: user page table, for satp.
+
+        # switch to the user page table.
+        sfence.vma zero, zero
+        csrw satp, a0
+        sfence.vma zero, zero
+
+        li a0, TRAPFRAME
+
+        # restore all but a0 from TRAPFRAME
+        ld ra, 40(a0)
+        ld sp, 48(a0)
+        ......
+        ld t6, 280(a0)
+
+	# restore user a0
+        ld a0, 112(a0)
+        
+        # return to user mode and user pc.
+        # usertrapret() set up sstatus and sepc.
+        sret
+```
+
+先切换了页表，变成了user page table
+
+然后通过a0寄存器（这时还是trapframe的地址，也就是之前copy的寄存器暂时存放的地方）来恢复用户寄存器。
+
+a0（之前的a0存在trapframe的第112个字节处）也恢复
+
+最后sret就回到了用户态。
+
+<a name='test'></a>
