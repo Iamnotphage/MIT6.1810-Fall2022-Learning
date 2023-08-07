@@ -524,3 +524,177 @@ a0（之前的a0存在trapframe的第112个字节处）也恢复
 最后sret就回到了用户态。
 
 <div id = "test"></div>
+
+**ok，这里之后就是这个lab的解法了**
+
+看看test0的提示：
+
+<ul>
+
+<li>You'll need to modify the Makefile to cause <tt>alarmtest.c</tt>
+to be compiled as an xv6 user program.
+
+</li><li>The right declarations to put in <tt>user/user.h</tt> are:
+<pre>    int sigalarm(int ticks, void (*handler)());
+    int sigreturn(void);
+</pre>
+
+</li><li>Update user/usys.pl (which generates user/usys.S),
+    kernel/syscall.h, and kernel/syscall.c 
+   to allow <tt>alarmtest</tt> to invoke the sigalarm and
+   sigreturn system calls.
+
+</li><li>For now, your <tt>sys_sigreturn</tt> should just return zero.
+
+</li><li>Your <tt>sys_sigalarm()</tt> should store the alarm interval and
+the pointer to the handler function in new fields in the <tt>proc</tt>
+structure (in <tt>kernel/proc.h</tt>).
+
+</li><li>You'll need to keep track of how many ticks have passed since the
+last call (or are left until the next call) to a process's alarm
+handler; you'll need a new field in <tt>struct&nbsp;proc</tt> for this
+too.  You can initialize <tt>proc</tt> fields in <tt>allocproc()</tt>
+in <tt>proc.c</tt>.
+
+</li><li>Every tick, the hardware clock forces an interrupt, which is handled
+in <tt>usertrap()</tt> in <tt>kernel/trap.c</tt>.
+
+
+</li><li>You only want to manipulate a process's alarm ticks if there's a 
+  timer interrupt; you want something like
+<pre>    if(which_dev == 2) ...
+</pre>
+
+</li><li>Only invoke the alarm function if the process has a
+  timer outstanding.  Note that the address of the user's alarm
+  function might be 0 (e.g., in user/alarmtest.asm, <tt>periodic</tt> is at
+  address 0).
+
+ </li><li>You'll need to modify
+  <tt>usertrap()</tt> so that when a
+  process's alarm interval expires, the user process executes
+  the handler function.
+  When a trap on the RISC-V returns to user space, what determines
+  the instruction address at which user-space code resumes execution?
+
+</li><li>It will be easier to look at traps with gdb if you tell qemu to
+use only one CPU, which you can do by running
+<pre>    make CPUS=1 qemu-gdb
+</pre>
+
+</li><li>You've succeeded if alarmtest prints "alarm!".
+
+</li></ul>
+
+第一个makefile注册用户程序，第二个声明函数，第三个perl脚本文件中定义entry，第四个sys_sigreturn先只设置返回0，第五个以及第六个需要在proc.h里面对结构体proc添加点新东西：
+
+in `kernel/proc.h`:
+
+```CPP
+// Per-process state
+struct proc {
+  struct spinlock lock;
+
+  ......
+
+  // solution: test0 new fields in the proc structure
+  int interval;  // ticks
+  uint64 handler; // fn
+  int passed_ticks; // expired_ticks
+
+  // solution: test1 2 3
+  struct trapframe* trapframe_backup; // resotre registers: it will be many
+  int ret_flag;
+};
+```
+然后在sys_sigalarm中存储这俩个变量：
+
+```CPP
+uint64
+sys_sigalarm(void)
+{
+  // should store the alarm interval and the pointer
+  // to the handler function in the proc structure
+  uint64 fn = 0;
+  int interval = 0;
+
+  argint(0, &interval);
+  argaddr(1, &fn);
+
+  struct proc* p = myproc();
+
+  p->passed_ticks = 0;
+  p->interval = interval;
+  p->handler = fn;
+
+  return 0;
+}
+```
+
+因为改变了proc结构体，对应在allocproc函数和freeproc函数也要有相应变量的初始化和删除；这里不赘述。
+
+结合后面提示：
+
+in `kernel/trap.c`:
+
+```CPP
+void
+usertrap(void)
+{
+  int which_dev = 0;
+
+  ......
+
+  // give up the CPU if this is a timer interrupt.
+  if(which_dev == 2){
+    // solution: manipulate a process's alarm ticks
+    p->passed_ticks++;
+    if( p->interval > 0 && p->passed_ticks >= p->interval && p->ret_flag == 1){
+      memmove(p->trapframe_backup, p->trapframe, sizeof(struct trapframe));
+      p->passed_ticks = 0;
+      p->trapframe->epc = p->handler;
+      p->ret_flag = 0;
+    }
+    yield();
+  }
+
+  usertrapret();
+}
+```
+
+对于test1、2、3这些：
+
+in `kernel/sysproc.c`:
+
+```CPP
+uint64
+sys_sigalarm(void)
+{
+  // should store the alarm interval and the pointer
+  // to the handler function in the proc structure
+  uint64 fn = 0;
+  int interval = 0;
+
+  argint(0, &interval);
+  argaddr(1, &fn);
+
+  struct proc* p = myproc();
+
+  p->passed_ticks = 0;
+  p->interval = interval;
+  p->handler = fn;
+
+  return 0;
+}
+
+uint64
+sys_sigreturn(void)
+{
+  struct proc* p = myproc();
+  p->ret_flag = 1;
+  memmove(p->trapframe, p->trapframe_backup, sizeof(struct trapframe));
+  return p->trapframe->a0;
+}
+```
+
+运行测试，结束。
