@@ -211,7 +211,7 @@ is correct if it passes alarmtest and 'usertests -q'
 
 这里从`user/alarmtest.c`中运行的流程开始梳理一遍。一来是巩固自己学到的东西，二来是方便后期阅读。
 
-<a href=“#test”>熟悉该流程的点击这里跳过</a>
+<a href="#test">熟悉该流程的点击这里跳过</a>
 
 首先运行shell（它是用户态的）然后执行alarmtest
 
@@ -523,4 +523,4 @@ a0（之前的a0存在trapframe的第112个字节处）也恢复
 
 最后sret就回到了用户态。
 
-<a name='test'></a>
+<div id = "test"></div>
