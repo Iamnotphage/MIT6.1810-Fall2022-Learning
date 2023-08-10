@@ -1,0 +1,11 @@
+c826bd8176c764a7ae385ba6567afc0cd91cfc69		branch 'traps' of git://g.csail.mit.edu/xv6-labs-2022
+a4ef3e1a5ae48457e228e343127e73d8fa2388ac	not-for-merge	branch 'cow' of git://g.csail.mit.edu/xv6-labs-2022
+888b75593bd6b4c387d2dcf3e492c430145b9734	not-for-merge	branch 'fs' of git://g.csail.mit.edu/xv6-labs-2022
+ad57ec8cb93867b5ec81a39e35e7cf08c64cf775	not-for-merge	branch 'lock' of git://g.csail.mit.edu/xv6-labs-2022
+9cc6b8345397c1f06cc93ed3fbaa20709cb1984e	not-for-merge	branch 'mmap' of git://g.csail.mit.edu/xv6-labs-2022
+71061515337fe191b3ed0802e132d7b0fd8d08ef	not-for-merge	branch 'net' of git://g.csail.mit.edu/xv6-labs-2022
+b1083ee059a2aa0e018676f4f3790cb3bafaa1c5	not-for-merge	branch 'pgtbl' of git://g.csail.mit.edu/xv6-labs-2022
+4b46c0c6eb464782faa36d158246ba4e3238c970	not-for-merge	branch 'riscv' of git://g.csail.mit.edu/xv6-labs-2022
+dc9c09903358605cef705b48746e202c6c9dd4f6	not-for-merge	branch 'syscall' of git://g.csail.mit.edu/xv6-labs-2022
+ddee41d96a53d67a4b4225aafb6b675bed9d3e7c	not-for-merge	branch 'thread' of git://g.csail.mit.edu/xv6-labs-2022
+dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe	not-for-merge	branch 'util' of git://g.csail.mit.edu/xv6-labs-2022
