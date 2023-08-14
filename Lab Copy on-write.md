@@ -7,3 +7,4 @@ $ make clean
 ```
 - [Lab Copy on Write](#lab-copy-on-write)
 
+先去看看lecture 8
