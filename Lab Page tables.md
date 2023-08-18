@@ -69,7 +69,7 @@ if(mappages(pagetable, TRAPFRAME, PGSIZE, (uint64)
 
 ```
 
-这里简单解释一下```mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)```：该函数为pagetable(一整个页表)创捷一个PTE（PageTableElements 也就是一页），从va开始，分配size，映射到pa，权限是perm
+这里简单解释一下```mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)```：该函数为pagetable(一整个页表)创捷一个PTE（PageTableEntry 也就是一页），从va开始，分配size，映射到pa，权限是perm
 
 到这里发现形参pa没有能够直接用的变量，需要在进程中设定新变量：in `kernel/proc.h`
 
