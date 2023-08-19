@@ -6,6 +6,7 @@ $ git checkout cow
 $ make clean
 ```
 - [Lab Copy on Write](#lab-copy-on-write)
+- [Implement copy-on-write fork](#implement-copy-on-write-fork)
 
 先去看看lecture 8
 
@@ -58,5 +59,23 @@ come home</a>.
 
 </p>
 
-resolution:
+# Implement copy-on-write fork
+
+solution:
+
+可以根据网页中some reasonable plan of attack来一一攻克难题；
+
+* Modify uvmcopy() to map the parent's physical pages into the child, instead of allocating new pages. Clear PTE_W in the PTEs of both child and parent for pages that have PTE_W set.
+  
+* Modify usertrap() to recognize page faults. When a write page-fault occurs on a COW page that was originally writeable, allocate a new page with kalloc(), copy the old page to the new page, and install the new page in the PTE with PTE_W set. Pages that were originally read-only (not mapped PTE_W, like pages in the text segment) should remain read-only and shared between parent and child; a process that tries to write such a page should be killed.
+
+* Ensure that each physical page is freed when the last PTE reference to it goes away -- but not before. A good way to do this is to keep, for each physical page, a "reference count" of the number of user page tables that refer to that page. Set a page's reference count to one when kalloc() allocates it. Increment a page's reference count when fork causes a child to share the page, and decrement a page's count each time any process drops the page from its page table. kfree() should only place a page back on the free list if its reference count is zero. It's OK to to keep these counts in a fixed-size array of integers. You'll have to work out a scheme for how to index the array and how to choose its size. For example, you could index the array with the page's physical address divided by 4096, and give the array a number of elements equal to highest physical address of any page placed on the free list by kinit() in kalloc.c. Feel free to modify kalloc.c (e.g., kalloc() and kfree()) to maintain the reference counts.
+
+* Modify copyout() to use the same scheme as page faults when it encounters a COW page.
+
+那么根据第一条来看，我们去修改uvmcopy()并且需要用到页表的PTE_W,这里目的其实就是修改uvmcopy让这个函数不会在fork()之后导致父子进程都有自己的页表，而是子进程映射父进程的页表，类似共享的关系。然后后续出现page fault时，再进行复制。也就是点题Copy-on-Write.
+
+```CPP
+
+```
 
