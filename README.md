@@ -13,6 +13,7 @@ official website:https://pdos.csail.mit.edu/6.828/2022/
 - [Lab Page tables](#lab-page-tables)
 - [Lab Traps](#lab-traps)
 - [Lab Copy on-write](#lab-copy-on-write)
+- [Lab Multithreading](#lab-multithreading)
 
 # Tools
 
@@ -51,3 +52,7 @@ For this class you'll need the RISC-V versions of a couple different tools:
 # Lab Copy on-write
 
 [Click Here](/Lab%20Copy%20on-write.md)
+
+# Lab Multithreading
+
+[Click Here](/Lab%20Multithreading.md)
