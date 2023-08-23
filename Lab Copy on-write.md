@@ -80,3 +80,7 @@ solution:
 ```
 
 scause 5 遇到bug了
+
+总算是通过了。
+
+![cow](/img/grade-lab-cow.png)
