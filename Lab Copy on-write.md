@@ -73,13 +73,85 @@ solution:
 
 * Modify copyout() to use the same scheme as page faults when it encounters a COW page.
 
-那么根据第一条来看，我们去修改uvmcopy()并且需要用到页表的PTE_W,这里目的其实就是修改uvmcopy让这个函数不会在fork()之后导致父子进程都有自己的页表，而是子进程映射父进程的页表，类似共享的关系。然后后续出现page fault时，再进行复制。也就是点题Copy-on-Write.
+然后就是
+Some hints:
+
+* It may be useful to have a way to record, for each PTE, whether it is a COW mapping. You can use the RSW (reserved for software) bits in the RISC-V PTE for this.
+* usertests -q explores scenarios that cowtest does not test, so don't forget to check that all tests pass for both.
+Some helpful macros and definitions for page table flags are at the end of kernel/riscv.h.
+* If a COW page fault occurs and there's no free memory, the process should be killed.
+
+这里对于lab实现来说，其实没有像前面那样一条条看，然后根据提示照做那么简单。
+
+提示的第一条告知我们需要给每个PTE设置一个COW bit来标识是否是COW页。
+
+in `kernel/riscv.h`:
 
 ```CPP
-
+#define PTE_COW (1L << 8) // solution: use RSW bits
 ```
 
-scause 5 遇到bug了
+第一条来看，让我们修改uvmcopy()函数，这个其实在`kernel/proc.c`的fork()函数中被调用了：
+
+```CPP
+int
+fork(void)
+{
+  ......
+  // Copy user memory from parent to child.
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+  ......
+  return pid;
+}
+```
+
+这可能造成很大程度的浪费，因为子进程可能根本没有用到父进程的一些页表，那么我们需要在uvmcopy()中进行映射而不是直接复制父进程的页表；这样需要写的时候，父子进程就不再共享某一个pte，那个pte才进行复制，从而节约资源。
+
+in `kernel/vm.c`:
+
+```CPP
+int
+uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+{
+  pte_t *pte;
+  uint64 pa, i;
+  uint flags;
+  //char *mem;
+
+  for(i = 0; i < sz; i += PGSIZE){
+    if((pte = walk(old, i, 0)) == 0)
+      panic("uvmcopy: pte should exist");
+    if((*pte & PTE_V) == 0)
+      panic("uvmcopy: page not present");
+    pa = PTE2PA(*pte);
+
+    // solution: modify uvmcopy() and clear PTE_W
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+
+    if(*pte & PTE_W){
+      *pte = (*pte & (~PTE_W)) | PTE_COW;
+    }
+
+    ref_increase((void*)pa);
+    flags = PTE_FLAGS(*pte);
+    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+      //kfree(mem);
+      goto err;
+    }
+  }
+  return 0;
+
+ err:
+  uvmunmap(new, 0, i / PGSIZE, 1);
+  return -1;
+}
+```
 
 总算是通过了。
 
