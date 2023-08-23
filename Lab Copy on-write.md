@@ -83,12 +83,100 @@ Some helpful macros and definitions for page table flags are at the end of kerne
 
 这里对于lab实现来说，其实没有像前面那样一条条看，然后根据提示照做那么简单。
 
+PS: **对于新建函数在defs.h定义等操作不赘述**
+
 提示的第一条告知我们需要给每个PTE设置一个COW bit来标识是否是COW页。
 
 in `kernel/riscv.h`:
 
 ```CPP
 #define PTE_COW (1L << 8) // solution: use RSW bits
+```
+
+然后根据攻克攻略的第三条，我们需要建立一个"reference count"的变量，来对每一个pte进行映射的计数。
+
+in `kernel/kalloc.c`:
+
+```CPP
+struct {
+  struct spinlock lock;
+  struct run *freelist;
+  int ref[PHYSTOP / PGSIZE]; // ref count
+} kmem;
+
+// solution: 
+
+void
+ref_increase(void* pa){
+  acquire(&kmem.lock);
+  kmem.ref[(uint64)pa/PGSIZE]++;
+  release(&kmem.lock);
+}
+
+void
+ref_decrease(void* pa){
+  acquire(&kmem.lock);
+  kmem.ref[(uint64)pa/PGSIZE]--;
+  release(&kmem.lock);
+}
+
+// 因为kinit初始化操作调用了freerange()
+void
+freerange(void *pa_start, void *pa_end)
+{
+  char *p;
+  p = (char*)PGROUNDUP((uint64)pa_start);
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE){
+    kmem.ref[(uint64)p / PGSIZE]= 1;
+    kfree(p);
+  }
+}
+
+// kfree也要对ref进行操作
+void
+kfree(void *pa)
+{
+  struct run *r;
+
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kfree");
+
+  // solution: ref decrease
+  acquire(&kmem.lock);
+  kmem.ref[(uint64)pa/PGSIZE]--;
+  if(kmem.ref[(uint64)pa/PGSIZE] <= 0){
+    // Fill with junk to catch dangling refs.
+    memset(pa, 1, PGSIZE);
+
+    r = (struct run*)pa;
+
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+  }
+  release(&kmem.lock);
+}
+
+// Allocate one 4096-byte page of physical memory.
+// Returns a pointer that the kernel can use.
+// Returns 0 if the memory cannot be allocated.
+void *
+kalloc(void)
+{
+  struct run *r;
+
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  if(r){
+    kmem.freelist = r->next;
+    kmem.ref[(uint64)r/PGSIZE] = 1;// solution
+  }
+  release(&kmem.lock);
+
+  if(r){
+    memset((char*)r, 5, PGSIZE); // fill with junk
+  }
+  return (void*)r;
+}
 ```
 
 第一条来看，让我们修改uvmcopy()函数，这个其实在`kernel/proc.c`的fork()函数中被调用了：
@@ -110,6 +198,8 @@ fork(void)
 ```
 
 这可能造成很大程度的浪费，因为子进程可能根本没有用到父进程的一些页表，那么我们需要在uvmcopy()中进行映射而不是直接复制父进程的页表；这样需要写的时候，父子进程就不再共享某一个pte，那个pte才进行复制，从而节约资源。
+
+所以我们在uvmcopy中修改关于页表分配的内容，让子进程和父进程共享页表（也就是子进程的页表指针指向父进程，需要写子进程的页的时候再复制copy on write）
 
 in `kernel/vm.c`:
 
@@ -153,6 +243,127 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 }
 ```
 
-总算是通过了。
+那么接下来需要在usertrap中添加一些出现page fault后的情况
+
+in `kernel/trap.c`:
+
+```CPP
+void
+usertrap(void){
+......
+  } else if((which_dev = devintr()) != 0){
+    // ok
+  } else if( (r_scause() == 15 || r_scause() == 13) )  {
+    // solution: Modify usertrap() to recognize page faults
+    //printf("cow start!\n");
+    uint64 va = r_stval();
+    if( va < PGROUNDDOWN(p->trapframe->sp) && 
+        va >= PGROUNDDOWN(p->trapframe->sp)-PGSIZE){
+          p->killed=1;
+    }else{
+      int ret;
+      if( (ret = cow_alloc(p->pagetable, va)) < 0){
+        p->killed=1;
+      }
+    }
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    setkilled(p);
+  }
+......
+}
+```
+
+这里有一个cow_alloc函数我们还没写，就是最核心的，遇到了copy on write该怎么复制这个页。
+
+in `kernel/kalloc.c`:
+
+```CPP
+int
+cow_alloc(pagetable_t pagetable, uint64 va){
+  uint64 pa;
+  uint64 mem;
+  pte_t *pte;
+  int flags;
+
+  if(va >= MAXVA){
+    return -1;
+  }
+  va = PGROUNDDOWN(va);
+  pte = walk(pagetable, va ,0);
+
+  if(pte == 0){
+    return -1;
+  }else if( !(*pte & PTE_V)){
+    return -1;
+  }else if( !(*pte & PTE_U)){
+    return -1;
+  }
+
+  pa = PTE2PA(*pte);
+  flags = PTE_FLAGS(*pte);
+
+// 下面这一坨if else非常重要
+  if(flags & PTE_W){
+    return 0;
+  }else if((flags & PTE_COW) == 0){
+    return -1;// without cow bit
+  }
+
+  acquire(&kmem.lock);
+  if(kmem.ref[pa/PGSIZE] == 1){
+    *pte &= ~PTE_COW;
+    *pte |= PTE_W;
+    release(&kmem.lock);
+    return 0;
+  }
+  release(&kmem.lock);
+
+  if( (mem=(uint64)kalloc()) == 0){
+    return -1;// out of memory
+  }
+  memmove((void*)mem, (void*)pa, PGSIZE);
+  *pte = ((PA2PTE(mem) | PTE_FLAGS(*pte) | PTE_W) & (~PTE_COW));
+
+  kfree((void *)pa);
+  return 0;
+}
+```
+
+最后一个，容易忽略的：
+
+* Modify copyout() to use the same scheme as page faults when it encounters a COW page.
+
+in `kernel/vm.c`:
+
+```CPP
+int
+copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
+{
+  uint64 n, va0, pa0;
+
+  while(len > 0){
+    va0 = PGROUNDDOWN(dstva);
+    cow_alloc(pagetable, va0);// solution: copy on write
+    pa0 = walkaddr(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (dstva - va0);
+    if(n > len)
+      n = len;
+    memmove((void *)(pa0 + (dstva - va0)), src, n);
+
+    len -= n;
+    src += n;
+    dstva = va0 + PGSIZE;
+  }
+  return 0;
+}
+```
+
+记得添加一下time.txt进行记录
+
+总算是通过了。(20230823)
 
 ![cow](/img/grade-lab-cow.png)
