@@ -12,6 +12,8 @@ $ make clean
 
 # Uthread: switching between threads
 
+先看看Lecture 11；
+
 # Using threads
 
 # Barrier
