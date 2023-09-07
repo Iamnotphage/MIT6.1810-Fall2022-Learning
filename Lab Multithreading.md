@@ -59,6 +59,19 @@ When you're done,
 * You can see the assembly code for uthread in user/uthread.asm, which may be handy for debugging.
 * 步进调试的示例
 
+根据上面的提示，来进一步梳理一下。
+
+* 首先我们需要在一些函数内部/某些文件种添加一些代码
+* thread_schedule() 运行给定线程时，线程要执行 从 thread_create() 传来的函数
+* thread_switch 妥善处理寄存器
+* thread结构体里面加点东西
+* thread_switch 只需要保存callee寄存器
+* 参考别的汇编代码
+
+这里已经有点眉目了
+
+首先在结构体thread中，添加context (上下文)
+
 
 
 
