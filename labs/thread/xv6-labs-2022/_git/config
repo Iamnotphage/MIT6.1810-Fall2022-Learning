@@ -1,0 +1,26 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = git://g.csail.mit.edu/xv6-labs-2022
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "util"]
+	remote = origin
+	merge = refs/heads/util
+[branch "syscall"]
+	remote = origin
+	merge = refs/heads/syscall
+[branch "pgtbl"]
+	remote = origin
+	merge = refs/heads/pgtbl
+[branch "traps"]
+	remote = origin
+	merge = refs/heads/traps
+[branch "cow"]
+	remote = origin
+	merge = refs/heads/cow
+[branch "thread"]
+	remote = origin
+	merge = refs/heads/thread
